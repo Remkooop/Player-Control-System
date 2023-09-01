@@ -14,6 +14,7 @@ public class StNormal : Istate {
     public const float runDecelerate = 40f;
     public const float airFriction = 65f;
     public const float airDecelerate = 26f;
+    public const float duckDecelerate = 50f;
 
     //正常状态纵向速度相关
     public const float gravityAccalerate = 90f;
@@ -75,6 +76,10 @@ public class StNormal : Istate {
         
         
         //在地面行走时
+        if(blackBoard.stateCheck.isDucking) {
+            //若下蹲
+            return Mathf.Max(0, blackBoard.speedX - duckDecelerate * Time.deltaTime);
+        }
         if(blackBoard.input.inputDirX == 0) {
             //若键入方向为空
             return Mathf.Max(0, blackBoard.speedX - runAccelerate * Time.deltaTime);
@@ -151,7 +156,7 @@ public class StNormal : Istate {
         } else {
             //当前在下降或静止
             blackBoard.moveDirectionY = -1;
-            if(blackBoard.input.inputDirY == -1) {
+            if(blackBoard.stateCheck.isDucking) {
                 //速降
                 return Mathf.Min(fastFallMaxFallSpeed, blackBoard.speedY + fallAccel * Time.deltaTime);
             } else {
