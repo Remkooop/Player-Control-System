@@ -15,6 +15,7 @@ public class PlayerStateCheck : MonoBehaviour
 
     //操作相关
     public bool canJump;
+    public bool isDucking;
 
     [Header("检测参数")]
     public LayerMask groundCheckLayer;
@@ -24,19 +25,27 @@ public class PlayerStateCheck : MonoBehaviour
     }
 
     private void Update() {
-        isOnGround = GroundCheck();
+        GroundCheck();
         HeadCollideCheck();
         sideCheck();
+        JumpCheck();
+        DuckCheck();
+    }
 
+    private void DuckCheck() {
+        isDucking = blackBoard.input.inputDirY == -1;
+    }
+
+    private void JumpCheck() {
         //土狼时间
-        if(isOnGround) {
+        if (isOnGround) {
             blackBoard.isJumpGrace = true;
             blackBoard.jumpGraceTimer = blackBoard.jumpGraceTime;
         } else {
-            if(blackBoard.isJumpGrace) {
+            if (blackBoard.isJumpGrace) {
                 //土狼时间内
                 blackBoard.jumpGraceTimer -= Time.deltaTime;
-                if(blackBoard.jumpGraceTimer <= 0) {
+                if (blackBoard.jumpGraceTimer <= 0) {
                     //土狼时间结束
                     blackBoard.isJumpGrace = false;
                     blackBoard.jumpGraceTimer = 0;
@@ -46,8 +55,8 @@ public class PlayerStateCheck : MonoBehaviour
         canJump = blackBoard.isJumpGrace || (isFaceGround || isBackGround);
     }
 
-    private bool GroundCheck() {
-        return Physics2D.BoxCast(transform.position + new Vector3(0,-1.25f), new Vector3(1.25f,0.05f), 0, new Vector2(0, -1), 0.05f, groundCheckLayer);
+    private void GroundCheck() {
+        isOnGround = Physics2D.BoxCast(transform.position + new Vector3(0,-1.25f), new Vector3(1.25f,0.05f), 0, new Vector2(0, -1), 0.05f, groundCheckLayer);
     }
 
     private bool HeadCollideCheck() {
