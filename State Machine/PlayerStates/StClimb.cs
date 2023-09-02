@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class StClimb : Istate {
-    public void OnEnter(BlackBoard blackBoard) {
+    public void OnEnter() {
         throw new System.NotImplementedException();
     }
 

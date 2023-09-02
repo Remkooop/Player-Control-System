@@ -1,7 +1,9 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\State Machine",
+    "\\State Machine\\PlayerStates"
   ],
-  "SelectedNode": "\\State Machine.meta",
+  "SelectedNode": "\\State Machine\\PlayerStates\\StNormal.cs",
   "PreviewInSolutionExplorer": false
 }

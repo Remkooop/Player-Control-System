@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public interface Istate {
-    void OnEnter(BlackBoard blackBoard);
+    void OnEnter();
     void OnExit();
     void OnFixedUpdate();
     void OnUpdate();
@@ -39,7 +39,7 @@ public class FSM {
         if(currentState != null)
             currentState.OnExit();
         currentState = _states[TargertState];
-        currentState.OnEnter(blackBoard);
+        currentState.OnEnter();
     }
 
     public void Update() {
