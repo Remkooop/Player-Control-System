@@ -3,8 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerStateCheck : MonoBehaviour
-{
+public class PlayerStateCheck : MonoBehaviour {
 
     public PlayerBlackBoard blackBoard;
 
@@ -16,6 +15,7 @@ public class PlayerStateCheck : MonoBehaviour
     //操作相关
     public bool canJump;
     public bool isDucking;
+    public bool isDashRefilled = true;
 
     [Header("检测参数")]
     public LayerMask groundCheckLayer;
@@ -26,6 +26,7 @@ public class PlayerStateCheck : MonoBehaviour
 
     private void Update() {
         GroundCheck();
+        DashRefill();
         HeadCollideCheck();
         sideCheck();
         JumpCheck();
@@ -56,15 +57,15 @@ public class PlayerStateCheck : MonoBehaviour
     }
 
     private void GroundCheck() {
-        isOnGround = Physics2D.BoxCast(transform.position + new Vector3(0,-1.25f), new Vector3(1.25f,0.05f), 0, new Vector2(0, -1), 0.05f, groundCheckLayer);
+        isOnGround = Physics2D.BoxCast(transform.position + new Vector3(0, -1.25f), new Vector3(1.25f, 0.05f), 0, new Vector2(0, -1), 0.05f, groundCheckLayer);
     }
 
     private bool HeadCollideCheck() {
-        bool isCollide =  Physics2D.BoxCast(transform.position + new Vector3(0, 0.8585f), new Vector3(1.5f, 0.05f), 0, new Vector2(0, 1), 0.05f, groundCheckLayer);
-        if(isCollide&&blackBoard.speedY>0&&blackBoard.moveDirectionY == 1&&!blackBoard.isHeadColliding) {
+        bool isCollide = Physics2D.BoxCast(transform.position + new Vector3(0, 0.8585f), new Vector3(1.5f, 0.05f), 0, new Vector2(0, 1), 0.05f, groundCheckLayer);
+        if (isCollide && blackBoard.speedY > 0 && blackBoard.moveDirectionY == 1 && !blackBoard.isHeadColliding) {
             //头顶有东西且竖直方向向上运动且先前不在碰撞状态
             //如果可以修正则不进入碰撞状态
-            if(!HeadCollideCorrect(4)) {
+            if (!HeadCollideCorrect(4)) {
                 blackBoard.isHeadColliding = true;
                 blackBoard.headCollideGraceTimer = blackBoard.headCollideGraceTime;
             }
@@ -73,7 +74,7 @@ public class PlayerStateCheck : MonoBehaviour
     }
 
     private void sideCheck() {
-        isFaceGround =  Physics2D.BoxCast(new Vector3(transform.position.x + blackBoard.faceDirection * 0.75f, transform.position.y -0.16f), new Vector3(0.1f, 2f), 0,new Vector3( blackBoard.faceDirection,0), 0.1f, groundCheckLayer);
+        isFaceGround = Physics2D.BoxCast(new Vector3(transform.position.x + blackBoard.faceDirection * 0.75f, transform.position.y - 0.16f), new Vector3(0.1f, 2f), 0, new Vector3(blackBoard.faceDirection, 0), 0.1f, groundCheckLayer);
         isBackGround = Physics2D.BoxCast(new Vector3(transform.position.x - blackBoard.faceDirection * 0.75f, transform.position.y - 0.16f), new Vector3(0.1f, 2f), 0, new Vector3(-blackBoard.faceDirection, 0), 0.1f, groundCheckLayer);
     }
 
@@ -85,16 +86,16 @@ public class PlayerStateCheck : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position + new Vector3(0, 0.8585f), 0.05f);
 
         //侧身检测
-        Gizmos.DrawWireSphere(new Vector3( transform.position.x + blackBoard.faceDirection * 0.75f, transform.position.y -0.16f), 0.05f);
+        Gizmos.DrawWireSphere(new Vector3(transform.position.x + blackBoard.faceDirection * 0.75f, transform.position.y - 0.16f), 0.05f);
         Gizmos.DrawWireSphere(new Vector3(transform.position.x - blackBoard.faceDirection * 0.75f, transform.position.y - 0.16f), 0.05f);
 
     }
 
-    //竖直碰撞头顶修正,如果可以修正则返回true
-    bool HeadCollideCorrect(int distance) {
+    public bool HeadCollideCorrect(int distance) {
+        //竖直碰撞头顶修正,如果可以修正则返回true
         //优先在面朝方向进行修正
-        for(int i = 1;i<=distance;i++) {
-            if(!Physics2D.BoxCast(transform.position + new Vector3(0, 0.8585f) + new Vector3(i*0.1f*blackBoard.faceDirection,0), new Vector3(1.5f, 0.05f), 0, new Vector2(0, 1), 0.05f, groundCheckLayer)) {
+        for (int i = 1; i <= distance; i++) {
+            if (!Physics2D.BoxCast(transform.position + new Vector3(0, 0.8585f) + new Vector3(i * 0.1f * blackBoard.faceDirection, 0), new Vector3(1.5f, 0.05f), 0, new Vector2(0, 1), 0.05f, groundCheckLayer)) {
                 transform.position = transform.position + new Vector3(i * 0.1f * blackBoard.faceDirection, 0);
                 return true;
             }
@@ -108,5 +109,23 @@ public class PlayerStateCheck : MonoBehaviour
             }
         }
         return false;
+    }
+
+    private void DashRefill() {
+        //冲刺已经充能
+        if (isDashRefilled) return;
+
+        //若冲刺充能正在冷却
+        if (blackBoard.isDashRefilling) {
+            blackBoard.dashRefillTimer -= Time.deltaTime;
+            if (blackBoard.dashRefillTimer <= 0) {
+                blackBoard.isDashRefilling = false;
+                blackBoard.dashRefillTimer = 0;
+            }
+            return;
+        }
+
+        //冲刺可以充能
+        if(isOnGround) isDashRefilled = true;
     }
 }

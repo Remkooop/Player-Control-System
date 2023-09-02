@@ -25,9 +25,15 @@ public class StNormal : Istate {
     #endregion
 
     private PlayerBlackBoard blackBoard;
-    public void OnEnter(BlackBoard blackBoard) {
+    private FSM fsm;
+
+    public StNormal(FSM fsm,PlayerBlackBoard blackboard) {
+        this.fsm = fsm;
+        this.blackBoard = blackboard;
+    }
+
+    public void OnEnter() {
         Debug.Log("Entered Normal State");
-        this.blackBoard = blackBoard as PlayerBlackBoard;
     }
 
     public void OnExit() {
@@ -38,6 +44,7 @@ public class StNormal : Istate {
     }
 
     public void OnUpdate() {
+        TryDash();
         TryJump();
         blackBoard.rb.velocity = Move();
     }
@@ -220,5 +227,56 @@ public class StNormal : Istate {
             }
         }
 
+    }
+
+    private void TryDash() {
+        //冲刺预输入时间结束
+        if (!blackBoard.isTryingDashing) return;
+
+        //冲刺无充能
+        if(!blackBoard.stateCheck.isDashRefilled) return;
+
+        //冲刺预输入计时器减少
+        blackBoard.tryDashTimer -= Time.deltaTime;
+
+        //冲刺冷却
+        if(blackBoard.isDashingCoolingDown) {
+            blackBoard.dashCoolDownTimer -= Time.deltaTime;
+            if(blackBoard.dashCoolDownTimer <= 0) {
+                blackBoard.isDashingCoolingDown = false;
+                blackBoard.dashRefillTimer = 0;
+            }
+        }
+
+        //若跳跃预输入计时器小于零
+        if (blackBoard.tryDashTimer <= 0) {
+            blackBoard.isTryingDashing = false;
+            blackBoard.tryDashTimer = 0;
+        }
+
+        //若仍在冲刺冷却时间
+        if (blackBoard.isDashingCoolingDown) return;
+
+        //正常可以冲刺
+        //非冲刺相关计时器设置
+        blackBoard.isJumpGrace = false;
+        blackBoard.jumpGraceTimer = 0;
+        blackBoard.isJumping = false;
+        blackBoard.jumpTimer = 0;
+        blackBoard.isWallJumping = false;
+        blackBoard.isTryingJumping = false;
+        blackBoard.tryJumpTimer = 0;
+        //停止预输入
+        blackBoard.isTryingDashing = false;
+        blackBoard.tryDashTimer = 0;
+        //冲刺进入冷却
+        blackBoard.isDashingCoolingDown = true;
+        blackBoard.dashCoolDownTimer = blackBoard.dashCoolDownTime;
+        //充能进入冷却
+        blackBoard.stateCheck.isDashRefilled = false;
+        blackBoard.isDashRefilling = true;
+        blackBoard.dashRefillTimer = blackBoard.dashRefillTime;
+        //切换状态
+        fsm.SwitchState(PlayerState.Dash);
     }
 }

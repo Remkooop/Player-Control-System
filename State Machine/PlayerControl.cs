@@ -38,6 +38,18 @@ public class PlayerBlackBoard : BlackBoard {
     public bool isJumpGrace;
     public float jumpGraceTime = 1 / 12f;
     public float jumpGraceTimer;
+    //冲刺预输入计时器
+    public bool isTryingDashing;
+    public float tryDashTime = 1 / 12f;
+    public float tryDashTimer;
+    //冲刺冷却计时器
+    public bool isDashingCoolingDown;
+    public float dashCoolDownTime = 0.2f;
+    public float dashCoolDownTimer;
+    //冲刺充能计时器
+    public bool isDashRefilling;
+    public float dashRefillTime = 0.1f;
+    public float dashRefillTimer;
 
 }
 public enum PlayerState {
@@ -49,7 +61,10 @@ public enum PlayerState {
 public class PlayerControl : MonoBehaviour {
     public FSM fsm;
     public PlayerBlackBoard blackBoard;
+    public Animator anim;
     private void Awake() {
+        anim = GetComponent<Animator>();
+
         //初始化blackboard
         blackBoard = new PlayerBlackBoard {
             rb = GetComponent<Rigidbody2D>(),
@@ -59,15 +74,16 @@ public class PlayerControl : MonoBehaviour {
 
         //初始化fsm
         fsm = new FSM(blackBoard);
-        fsm.AddState(PlayerState.Normal, new StNormal());
+        fsm.AddState(PlayerState.Normal, new StNormal(fsm,blackBoard));
         fsm.AddState(PlayerState.Climb, new StClimb());
-        fsm.AddState(PlayerState.Dash, new StDash());
+        fsm.AddState(PlayerState.Dash, new StDash(fsm, blackBoard));
         fsm.SwitchState(PlayerState.Normal);
     }
 
     private void Update() {
         UpdateMovementStates();
         fsm.Update();
+        anim.SetBool("dashRefilled", blackBoard.stateCheck.isDashRefilled);
     }
 
     private void FixedUpdate() {
