@@ -62,6 +62,8 @@ public class PlayerInput : MonoBehaviour {
         //Í£Ö¹ÌøÔ¾ÉÏÉı
         blackBoard.isJumping = false;
         blackBoard.isWallJumping = false;
+        blackBoard.isSuperDashing = false;
+        blackBoard.jumpRiseMul = 1;
         blackBoard.jumpTimer = 0;
     }
 

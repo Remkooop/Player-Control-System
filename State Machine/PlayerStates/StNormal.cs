@@ -59,6 +59,10 @@ public class StNormal : Istate {
             return blackBoard.speedX;
         }
 
+        if(blackBoard.isSuperDashing) {
+            //大跳时间内
+            return blackBoard.speedX;
+        }
 
         if(!blackBoard.stateCheck.isOnGround) {
             //不在地面时
@@ -123,7 +127,9 @@ public class StNormal : Istate {
                 //碰撞速度保留时间结束
                 blackBoard.jumpTimer = 0;
                 blackBoard.isJumping = false;
+                blackBoard.isSuperDashing = false;
                 blackBoard.isWallJumping = false;
+                blackBoard.jumpRiseMul = 1;
                 blackBoard.headCollideGraceTimer = 0;
                 blackBoard.isHeadColliding = false;
                 blackBoard.moveDirectionY = -1;
@@ -138,9 +144,10 @@ public class StNormal : Istate {
             if (blackBoard.jumpTimer <= 0) {
                 blackBoard.jumpTimer = 0;
                 blackBoard.isJumping = false;
+                blackBoard.isSuperDashing = false;
                 blackBoard.isWallJumping = false;
             }
-            return jumpRaisingSpeed;
+            return jumpRaisingSpeed*blackBoard.jumpRiseMul;
         }
 
         //落地
