@@ -18,10 +18,12 @@ public class PlayerBlackBoard : BlackBoard {
     public int moveDirectionY;
     public float speedX;
     public float speedY;
+    public float jumpRiseMul = 1;
 
     //计时器相关
     //跳跃计时器
     public bool isJumping;
+    public bool isSuperDashing;
     public bool isWallJumping;
     public float jumpTime = 0.25f;
     public float wallJumpTime = 0.12f;

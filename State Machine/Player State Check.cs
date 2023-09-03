@@ -6,6 +6,7 @@ using UnityEngine;
 public class PlayerStateCheck : MonoBehaviour {
 
     public PlayerBlackBoard blackBoard;
+    public FSM fsm;
 
     //物理相关
     public bool isOnGround;
@@ -22,6 +23,7 @@ public class PlayerStateCheck : MonoBehaviour {
 
     private void Awake() {
         blackBoard = GetComponent<PlayerControl>().blackBoard;
+        fsm = GetComponent<PlayerControl>().fsm;
     }
 
     private void Update() {
@@ -57,15 +59,46 @@ public class PlayerStateCheck : MonoBehaviour {
     }
 
     private void GroundCheck() {
+        bool wasOnGround = isOnGround;
         isOnGround = Physics2D.BoxCast(transform.position + new Vector3(0, -1.25f), new Vector3(1.25f, 0.05f), 0, new Vector2(0, -1), 0.05f, groundCheckLayer);
+
+        //正常状态撞地
+        if (fsm.currentState is StNormal && !wasOnGround && isOnGround) {
+            blackBoard.speedX *= 1.2f;
+            blackBoard.rb.velocity = new Vector2(blackBoard.speedX*blackBoard.moveDirectionX,blackBoard.speedY*blackBoard.moveDirectionY);
+            Debug.Log(blackBoard.speedX);
+        }
+
+        if(isOnGround&&fsm.currentState is StDash) {
+            //冲刺状态且在地面上
+            //如果可以修正则不进入碰撞状态
+            if (GroundCollideYCorrect()) {
+                isOnGround = false;
+            }
+        }
     }
+
+    private void sideCheck() {
+        isFaceGround = Physics2D.BoxCast(new Vector3(transform.position.x + blackBoard.faceDirection * 0.75f, transform.position.y - 0.16f), new Vector3(0.1f, 2f), 0, new Vector3(blackBoard.faceDirection, 0), 0.1f, groundCheckLayer);
+        isBackGround = Physics2D.BoxCast(new Vector3(transform.position.x - blackBoard.faceDirection * 0.75f, transform.position.y - 0.16f), new Vector3(0.1f, 2f), 0, new Vector3(-blackBoard.faceDirection, 0), 0.1f, groundCheckLayer);
+    
+        if(isFaceGround&&fsm.currentState is StDash) {
+            //冲刺状态且面前撞墙
+            //如果可以修正则不进入碰撞状态
+            if(GroundCollideXCorrect()) {
+                isFaceGround=false;
+            }
+        }
+    }
+
 
     private bool HeadCollideCheck() {
         bool isCollide = Physics2D.BoxCast(transform.position + new Vector3(0, 0.8585f), new Vector3(1.5f, 0.05f), 0, new Vector2(0, 1), 0.05f, groundCheckLayer);
         if (isCollide && blackBoard.speedY > 0 && blackBoard.moveDirectionY == 1 && !blackBoard.isHeadColliding) {
             //头顶有东西且竖直方向向上运动且先前不在碰撞状态
             //如果可以修正则不进入碰撞状态
-            if (!HeadCollideCorrect(4)) {
+            //如果是冲刺状态则修正距离为5
+            if (!HeadCollideCorrect(fsm.currentState is StDash? 5:4)) {
                 blackBoard.isHeadColliding = true;
                 blackBoard.headCollideGraceTimer = blackBoard.headCollideGraceTime;
             }
@@ -73,10 +106,6 @@ public class PlayerStateCheck : MonoBehaviour {
         return isCollide;
     }
 
-    private void sideCheck() {
-        isFaceGround = Physics2D.BoxCast(new Vector3(transform.position.x + blackBoard.faceDirection * 0.75f, transform.position.y - 0.16f), new Vector3(0.1f, 2f), 0, new Vector3(blackBoard.faceDirection, 0), 0.1f, groundCheckLayer);
-        isBackGround = Physics2D.BoxCast(new Vector3(transform.position.x - blackBoard.faceDirection * 0.75f, transform.position.y - 0.16f), new Vector3(0.1f, 2f), 0, new Vector3(-blackBoard.faceDirection, 0), 0.1f, groundCheckLayer);
-    }
 
     private void OnDrawGizmosSelected() {
         //地面检测
@@ -89,6 +118,64 @@ public class PlayerStateCheck : MonoBehaviour {
         Gizmos.DrawWireSphere(new Vector3(transform.position.x + blackBoard.faceDirection * 0.75f, transform.position.y - 0.16f), 0.05f);
         Gizmos.DrawWireSphere(new Vector3(transform.position.x - blackBoard.faceDirection * 0.75f, transform.position.y - 0.16f), 0.05f);
 
+    }
+
+    private bool GroundCollideXCorrect() {
+        if (!(fsm.currentState is StDash)) return false;
+        //水平或斜下冲刺时，如果碰到墙壁会进行水平修正
+        var state = fsm.currentState as StDash;
+
+        //若水平方向不移动
+        if (state.dashDir.x == 0) return false;
+        for(int i = 1; i <= 4; i++) {
+            if(!Physics2D.BoxCast(new Vector3(transform.position.x + blackBoard.faceDirection * 0.75f, transform.position.y - 0.16f + i*0.1f), new Vector3(0.1f, 2f), 0, new Vector3(blackBoard.faceDirection, 0), 0.1f, groundCheckLayer)) {
+                transform.position = new Vector3(transform.position.x, transform.position.y + i * 0.1f);
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    private bool GroundCollideYCorrect() {
+        if (!(fsm.currentState is StDash)) return false;
+        //向下或斜下冲刺时，如果碰到地面会进行垂直修正
+        //不会修正到与冲刺运动方向水平相反的墙角
+        bool flag1 = false;
+        bool flag2 = false;
+        var state = fsm.currentState as StDash;
+
+        //若冲刺竖直方向不向下
+        if (state.dashDir.y != -1) return false;
+
+        if (state.dashDir.x == 0) {
+            //冲刺竖直
+            flag1 = true;
+            flag2 = true;
+        } else {
+            flag1 = state.dashDir.x > 0;
+            flag2 = state.dashDir.x < 0;
+        }
+
+        if (flag1) {
+            //向右修正
+            for (int i = 1; i <= 4; i++) {
+                if (!Physics2D.BoxCast(transform.position + new Vector3(0, -1.25f) + new Vector3(i*0.1f,0), new Vector3(1.25f, 0.05f), 0, new Vector2(0, -1), 0.05f, groundCheckLayer)) {
+                    transform.position = transform.position + new Vector3(i * 0.1f, 0);
+                    return true;
+                }
+            }
+        }
+        if (flag2) {
+            //向左修正
+            for(int i = 1;i<= 4; i++) {
+                if (!Physics2D.BoxCast(transform.position + new Vector3(0, -1.25f) + new Vector3(-i * 0.1f, 0), new Vector3(1.25f, 0.05f), 0, new Vector2(0, -1), 0.05f, groundCheckLayer)) {
+                    transform.position = transform.position + new Vector3(-i * 0.1f, 0);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public bool HeadCollideCorrect(int distance) {
