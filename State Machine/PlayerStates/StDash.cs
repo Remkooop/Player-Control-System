@@ -39,7 +39,7 @@ public class StDash : Istate
         blackBoard.rb.velocity = DetermineDashSpeed();
         DashTimerReduce();
         TryJump();
-
+        TryClimb();
     }
 
     private Vector2 DetermineDashSpeed() {
@@ -74,8 +74,8 @@ public class StDash : Istate
                 //竖直向上向下
                 newSpeedY = blackBoard.speedY * blackBoard.moveDirectionY;
                 newSpeedX = 0;
-            }else if(dashDir.y == 0 || dashDir.y > 0) {
-                //水平左右或者斜上
+            }else if(dashDir.y == 0 || dashDir.y > 0||blackBoard.stateCheck.isOnGround) {
+                //水平左右或者斜上或者冲到地面上
                 newSpeedY = dashDir.y == 0? 0: blackBoard.speedY;
                 newSpeedX = 16f * (dashDir.x>0? 1:-1);
             } else {
@@ -131,6 +131,42 @@ public class StDash : Istate
             }
             blackBoard.isSuperDashing = true;
             fsm.SwitchState(PlayerState.Normal);
+            return;
+        } 
+        if(blackBoard.stateCheck.canWallBounce) {
+            //蹬墙跳
+            blackBoard.isTryingJumping = false;
+            blackBoard.tryJumpTimer = 0;
+            blackBoard.isJumping = true;
+            blackBoard.jumpTimer = blackBoard.wallJumpTime;
+            blackBoard.isWallJumping = true;
+
+            blackBoard.speedX = 19f;
+            if (blackBoard.stateCheck.isFaceGround) {
+                //优先从面朝方向跳开
+                blackBoard.moveDirectionX = -blackBoard.faceDirection;
+            } else {
+                //从背面跳开
+                blackBoard.moveDirectionX = blackBoard.faceDirection;
+            }
+
+            blackBoard.rb.velocity = new Vector2(19f * blackBoard.moveDirectionX, 10.5f);
+
+            fsm.SwitchState(PlayerState.Normal);
         }
+    }
+
+    private void TryClimb() {
+        //没有按住抓
+        if (!blackBoard.input.isPressingGrab) return;
+
+        //不面朝墙
+        if (!blackBoard.stateCheck.isFaceGround) return;
+
+        //体力小于等于0
+        if (blackBoard.stamina <= 20) return;
+
+        //可以攀爬
+        fsm.SwitchState(PlayerState.Climb);
     }
 }

@@ -20,6 +20,9 @@ public class PlayerBlackBoard : BlackBoard {
     public float speedY;
     public float jumpRiseMul = 1;
 
+    //攀爬相关
+    public float stamina;
+
     //计时器相关
     //跳跃计时器
     public bool isJumping;
@@ -52,7 +55,10 @@ public class PlayerBlackBoard : BlackBoard {
     public bool isDashRefilling;
     public float dashRefillTime = 0.1f;
     public float dashRefillTimer;
-
+    //抓角加速计时器
+    public bool isCornerBoostGrace;
+    public float cornerBoostGraceTime = 0.2f;
+    public float cornerBoostGraceTimer;
 }
 public enum PlayerState {
     Normal,
@@ -71,13 +77,14 @@ public class PlayerControl : MonoBehaviour {
         blackBoard = new PlayerBlackBoard {
             rb = GetComponent<Rigidbody2D>(),
             input = GetComponent<PlayerInput>(),
-            stateCheck = GetComponent<PlayerStateCheck>()
+            stateCheck = GetComponent<PlayerStateCheck>(),
+            stamina = 110
         };
 
         //初始化fsm
         fsm = new FSM(blackBoard);
         fsm.AddState(PlayerState.Normal, new StNormal(fsm,blackBoard));
-        fsm.AddState(PlayerState.Climb, new StClimb());
+        fsm.AddState(PlayerState.Climb, new StClimb(fsm, blackBoard));
         fsm.AddState(PlayerState.Dash, new StDash(fsm, blackBoard));
         fsm.SwitchState(PlayerState.Normal);
     }
@@ -86,6 +93,7 @@ public class PlayerControl : MonoBehaviour {
         UpdateMovementStates();
         fsm.Update();
         anim.SetBool("dashRefilled", blackBoard.stateCheck.isDashRefilled);
+        anim.SetBool("isTired", blackBoard.stamina < 20);
     }
 
     private void FixedUpdate() {

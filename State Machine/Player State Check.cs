@@ -17,6 +17,7 @@ public class PlayerStateCheck : MonoBehaviour {
     public bool canJump;
     public bool isDucking;
     public bool isDashRefilled = true;
+    public bool canWallBounce;
 
     [Header("检测参数")]
     public LayerMask groundCheckLayer;
@@ -32,7 +33,39 @@ public class PlayerStateCheck : MonoBehaviour {
         HeadCollideCheck();
         sideCheck();
         JumpCheck();
+        WallBounceCheck();
         DuckCheck();
+    }
+
+    private void WallBounceCheck() {
+        if (!(fsm.currentState is StDash)) {
+            //非冲刺则不行
+            canWallBounce = false;
+            return;
+        }
+        if (isFaceGround || isBackGround) {
+            //已经贴墙则可以
+            canWallBounce = true;
+            return;
+        }
+        //蹭墙跳修正
+        bool check1;
+        bool check2;
+        for(int i = 1; i <= 4; i++) {
+            check1 = Physics2D.BoxCast(new Vector3(transform.position.x + blackBoard.faceDirection * (0.75f+i*0.1f), transform.position.y - 0.16f), new Vector3(0.1f, 2f), 0, new Vector3(blackBoard.faceDirection, 0), 0.1f, groundCheckLayer);
+            check2 =Physics2D.BoxCast(new Vector3(transform.position.x - blackBoard.faceDirection * (0.75f + i * 0.1f), transform.position.y - 0.16f), new Vector3(0.1f, 2f), 0, new Vector3(-blackBoard.faceDirection, 0), 0.1f, groundCheckLayer);
+            if (check1) {
+                isFaceGround = true;
+                canWallBounce = true;
+                return;
+            }
+            if(check2) {
+                isFaceGround = true;
+                canWallBounce = true;
+                return;
+            }
+        }
+
     }
 
     private void DuckCheck() {
@@ -66,7 +99,6 @@ public class PlayerStateCheck : MonoBehaviour {
         if (fsm.currentState is StNormal && !wasOnGround && isOnGround) {
             blackBoard.speedX *= 1.2f;
             blackBoard.rb.velocity = new Vector2(blackBoard.speedX*blackBoard.moveDirectionX,blackBoard.speedY*blackBoard.moveDirectionY);
-            Debug.Log(blackBoard.speedX);
         }
 
         if(isOnGround&&fsm.currentState is StDash) {
@@ -76,6 +108,8 @@ public class PlayerStateCheck : MonoBehaviour {
                 isOnGround = false;
             }
         }
+
+        if (isOnGround) blackBoard.stamina = 110;
     }
 
     private void sideCheck() {

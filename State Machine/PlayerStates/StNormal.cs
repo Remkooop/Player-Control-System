@@ -45,6 +45,7 @@ public class StNormal : Istate {
 
     public void OnUpdate() {
         TryDash();
+        TryClimb();
         TryJump();
         blackBoard.rb.velocity = Move();
     }
@@ -237,32 +238,31 @@ public class StNormal : Istate {
     }
 
     private void TryDash() {
+        //冲刺预输入计时器减少
+        blackBoard.tryDashTimer -= Time.deltaTime;
+
+        //冲刺冷却
+        if (blackBoard.isDashingCoolingDown) {
+            blackBoard.dashCoolDownTimer -= Time.deltaTime;
+            if (blackBoard.dashCoolDownTimer <= 0) {
+                blackBoard.isDashingCoolingDown = false;
+                blackBoard.dashRefillTimer = 0;
+            }
+            return;
+        }
+
         //冲刺预输入时间结束
         if (!blackBoard.isTryingDashing) return;
 
         //冲刺无充能
         if(!blackBoard.stateCheck.isDashRefilled) return;
 
-        //冲刺预输入计时器减少
-        blackBoard.tryDashTimer -= Time.deltaTime;
-
-        //冲刺冷却
-        if(blackBoard.isDashingCoolingDown) {
-            blackBoard.dashCoolDownTimer -= Time.deltaTime;
-            if(blackBoard.dashCoolDownTimer <= 0) {
-                blackBoard.isDashingCoolingDown = false;
-                blackBoard.dashRefillTimer = 0;
-            }
-        }
 
         //若跳跃预输入计时器小于零
         if (blackBoard.tryDashTimer <= 0) {
             blackBoard.isTryingDashing = false;
             blackBoard.tryDashTimer = 0;
         }
-
-        //若仍在冲刺冷却时间
-        if (blackBoard.isDashingCoolingDown) return;
 
         //正常可以冲刺
         //非冲刺相关计时器设置
@@ -285,5 +285,19 @@ public class StNormal : Istate {
         blackBoard.dashRefillTimer = blackBoard.dashRefillTime;
         //切换状态
         fsm.SwitchState(PlayerState.Dash);
+    }
+
+    private void TryClimb() {
+        //没有按住抓
+        if (!blackBoard.input.isPressingGrab) return;
+
+        //不面朝墙
+        if (!blackBoard.stateCheck.isFaceGround) return;
+
+        //体力小于等于0
+        if(blackBoard.stamina<=20) return;
+
+        //可以攀爬
+        fsm.SwitchState(PlayerState.Climb);
     }
 }
