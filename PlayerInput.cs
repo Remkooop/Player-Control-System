@@ -13,7 +13,6 @@ public class PlayerInput : MonoBehaviour {
     public int inputDirY;
 
     public bool isPressingJump;
-    public bool isPressingDash;
     public bool isPressingGrab;
 
     private void Awake() {
@@ -68,14 +67,12 @@ public class PlayerInput : MonoBehaviour {
     }
 
     private void StartPressingDash(InputAction.CallbackContext context) {
-        isPressingDash = true;
         //重置冲刺预输入计时器
         blackBoard.isTryingDashing = true;
         blackBoard.tryDashTimer = blackBoard.tryDashTime; ;
     }
 
     private void StopPressingDash(InputAction.CallbackContext context) {
-        isPressingDash = false;
     }
 
     private void StartPressingGrab(InputAction.CallbackContext context) {
